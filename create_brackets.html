@@ -1,0 +1,2626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCT Spring 2026 — Draw Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f11;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a32;
+    --border2: #3a3a46;
+    --accent: #c8f064;
+    --accent2: #7b6ef6;
+    --accent3: #f06464;
+    --accent4: #64c8f0;
+    --text: #e8e8ee;
+    --text2: #9090a8;
+    --text3: #555568;
+    --seed: #c8f064;
+    --tbd: #555568;
+    --win-bg: rgba(200,240,100,0.08);
+    --win-border: rgba(200,240,100,0.4);
+  }
+
+  body.light {
+    --bg: #f4f4f6;
+    --surface: #ffffff;
+    --surface2: #ededf0;
+    --border: #d8d8de;
+    --border2: #c0c0ca;
+    --text: #18181c;
+    --text2: #555566;
+    --text3: #8888a0;
+    --accent: #3a8a2e;
+    --accent2: #5b54d6;
+    --accent3: #c83030;
+    --accent4: #1888aa;
+    --seed: #3a8a2e;
+    --tbd: #aaa;
+    --win-bg: rgba(58,138,46,0.08);
+    --win-border: rgba(58,138,46,0.4);
+  }
+  body.light .match-card { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  body.light .seed-badge { background: rgba(58,138,46,0.12); color: var(--accent); }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 12px;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .logo span { color: var(--accent); }
+
+  .header-center {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(200,240,100,0.05); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0f0f11;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+  .btn-primary:hover { background: #d8f080; color: #0f0f11; border-color: #d8f080; }
+  body.light .btn-primary { color: #fff; }
+  body.light .btn-primary:hover { color: #fff; }
+
+  .btn-icon {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 5px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .btn-icon:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn-icon:disabled { opacity: 0.25; cursor: default; }
+
+  .theme-toggle {
+    display: flex; align-items: center; gap: 5px;
+    cursor: pointer; font-size: 14px;
+    padding: 5px 9px; border-radius: 6px;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--text3); transition: all 0.15s;
+    font-family: 'DM Mono', monospace; line-height: 1;
+  }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--text2); }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .status-text { font-size: 11px; color: var(--text3); }
+
+  .mobile-menu-btn {
+    display: none;
+    font-size: 18px;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text2);
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: calc(100vh - 53px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    position: sticky;
+    top: 53px;
+    height: calc(100vh - 53px);
+  }
+
+  /* stats bar */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-box { text-align: center; }
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px; font-weight: 700;
+    color: var(--accent); line-height: 1;
+  }
+  .stat-label {
+    font-size: 8px; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px;
+  }
+
+  .sidebar-section {
+    padding: 14px 16px 0; 
+  }
+
+  .sidebar-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .tab-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    transition: all 0.12s;
+    text-align: left;
+  }
+  .tab-btn:hover { background: var(--surface2); color: var(--text); }
+  .tab-btn.active { background: rgba(200,240,100,0.1); color: var(--accent); border: 1px solid rgba(200,240,100,0.2); }
+
+  .tab-btn .pill {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: var(--surface2);
+    color: var(--text3);
+  }
+  .tab-btn.active .pill { background: rgba(200,240,100,0.15); color: var(--accent); }
+
+  .view-btns {
+    display: flex;
+    gap: 4px;
+    padding: 10px 0;
+  }
+  .view-btn {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-align: center;
+    transition: all 0.12s;
+  }
+  .view-btn:hover { border-color: var(--border2); color: var(--text2); }
+  .view-btn.active { border-color: var(--accent2); color: var(--accent2); background: rgba(123,110,246,0.08); }
+
+  /* ── MATCH INSPECTOR ── */
+  .inspector {
+    padding: 12px 16px;
+    flex: 1;
+    overflow-y: auto;
+  }
+  .inspector-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text3);
+    font-size: 11px;
+    text-align: center;
+    gap: 8px;
+    padding: 40px 0;
+  }
+  .inspector-empty svg { opacity: 0.2; }
+
+  .inspector-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .field-group { margin-bottom: 10px; }
+  .field-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .field-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 7px 9px;
+    transition: border-color 0.12s;
+    outline: none;
+  }
+  .field-input:focus { border-color: var(--accent); }
+  .field-input.winner-input { border-color: rgba(200,240,100,0.3); background: rgba(200,240,100,0.05); }
+
+  .field-textarea {
+    width: 100%;
+    min-height: 44px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 7px 9px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.12s;
+  }
+  .field-textarea:focus { border-color: var(--accent); }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .winner-label {
+    font-size: 10px;
+    color: var(--accent);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .score-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .action-row .btn { flex: 1; font-size: 10px; }
+
+  .winner-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(200,240,100,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(200,240,100,0.2);
+    margin-top: 4px;
+  }
+
+  /* ── LEGEND ── */
+  .legend {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--text3);
+  }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    overflow-x: auto;
+    padding: 28px;
+    background: var(--bg);
+  }
+
+  .bracket-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .bracket-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--text);
+  }
+  .bracket-subtitle {
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  /* ── BRACKET GRID ── */
+  .bracket-area {
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+    min-width: max-content;
+  }
+
+  .round-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 210px;
+  }
+
+  .round-header {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 0 12px 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+
+  .round-matches {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+  }
+
+  .match-wrapper {
+    position: relative;
+    padding: 6px 12px;
+  }
+
+  .match-wrapper::after {
+    content: '';
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    width: 12px;
+    height: 1px;
+    background: var(--border2);
+  }
+
+  .match-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .match-card:hover { border-color: var(--border2); background: var(--surface2); }
+  .match-card.selected { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2); }
+  .match-card.has-winner { border-color: rgba(200,240,100,0.25); }
+  .match-card.final-match { border-color: rgba(200,240,100,0.35); }
+
+  .match-player-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text2);
+    min-height: 32px;
+    transition: color 0.12s;
+    position: relative;
+  }
+  .match-player-row:last-of-type { border-bottom: none; }
+  .match-player-row.tbd { color: var(--tbd); font-style: italic; }
+  .match-player-row.is-winner {
+    color: var(--accent);
+    background: rgba(200,240,100,0.05);
+    font-weight: 500;
+  }
+  .match-player-row.is-winner::before {
+    content: '\25B6';
+    font-size: 8px;
+    color: var(--accent);
+    opacity: 0.7;
+  }
+  .player-name {
+    outline: none;
+    border-radius: 2px;
+    padding: 0 2px;
+    margin: 0 -2px;
+    transition: background 0.15s;
+    min-width: 20px;
+    display: inline;
+  }
+  .player-name:focus {
+    background: rgba(200,240,100,0.12);
+    box-shadow: 0 0 0 1px rgba(200,240,100,0.3);
+  }
+  .player-name[contenteditable="false"] { cursor: default; }
+  body.locked .player-name { pointer-events: none; }
+  .bye-match {
+    opacity: 0.5;
+    border-style: dashed !important;
+    cursor: default;
+  }
+  .bye-match .match-meta { font-style: italic; }
+
+  .seed-badge {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(200,240,100,0.12);
+    color: var(--accent);
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+
+  .score-display {
+    font-size: 10px;
+    color: var(--text3);
+    margin-left: auto;
+    font-weight: 500;
+  }
+  .score-display.winner-score { color: var(--accent); }
+
+  .match-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 10px;
+    background: rgba(0,0,0,0.2);
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.04em;
+  }
+  body.light .match-meta { background: rgba(0,0,0,0.03); }
+
+  /* ── SECTION DIVIDER ── */
+  .section-break {
+    margin: 28px 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-break-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    white-space: nowrap;
+  }
+  .section-break-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── ROUND ROBIN TABLE ── */
+  .rr-grid {
+    display: grid;
+    gap: 10px;
+  }
+
+  .rr-match {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    max-width: 600px;
+  }
+  .rr-match:hover { border-color: var(--border2); background: var(--surface2); }
+  .rr-match.selected { border-color: var(--accent2); }
+  .rr-match.has-winner { border-color: rgba(200,240,100,0.25); }
+
+  .rr-num {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(123,110,246,0.15);
+    color: var(--accent2);
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+  }
+
+  .rr-players {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .rr-players .rr-p1 { color: var(--text); }
+  .rr-players .rr-vs { color: var(--text3); font-size: 10px; margin: 0 4px; }
+  .rr-players .rr-p2 { color: var(--text); }
+  .rr-players .rr-p1.won, .rr-players .rr-p2.won { color: var(--accent); font-weight: 500; }
+
+  .rr-time {
+    font-size: 10px;
+    color: var(--text3);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* ── STANDINGS TABLE ── */
+  .standings {
+    margin-top: 24px;
+    max-width: 500px;
+  }
+  .standings-title {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+  }
+  .standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  .standings-table th {
+    text-align: left;
+    padding: 6px 10px;
+    color: var(--text3);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+  .standings-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .standings-table tr:last-child td { border-bottom: none; }
+  .standings-table .finalist { color: var(--accent); }
+  .standings-table .finalist td:first-child::before { content: '\2192 '; color: var(--accent); }
+  .standing-rank { color: var(--text3); }
+
+  /* ── PANEL ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── SCHEDULE VIEW ── */
+  .schedule-toolbar {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap;
+  }
+  .sch-filter {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    padding: 5px 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text2); cursor: pointer; transition: all 0.12s;
+  }
+  .sch-filter:hover { border-color: var(--border2); }
+  .sch-filter.active { border-color: var(--accent); color: var(--accent); background: rgba(200,240,100,0.06); }
+
+  .schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .sl-time-header {
+    font-size: 11px; font-weight: 600; color: var(--accent);
+    padding: 8px 0 6px; border-bottom: 1px solid var(--border);
+    margin-bottom: 8px; letter-spacing: 0.04em;
+  }
+  .sl-matches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 6px;
+  }
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: 72px repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .sg-header {
+    padding: 9px 6px; font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text3); background: var(--surface);
+    text-align: center; font-weight: 500;
+  }
+  .sg-time {
+    padding: 6px; font-size: 9px; color: var(--text3); background: var(--surface);
+    display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 500;
+  }
+  .sg-cell {
+    background: var(--bg); padding: 3px; min-height: 48px;
+  }
+  .sg-match {
+    height: 100%; padding: 5px 7px; border-radius: 5px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 9px; color: var(--text2); cursor: pointer;
+    transition: all 0.12s; display: flex; flex-direction: column;
+    justify-content: center; gap: 1px; line-height: 1.3;
+  }
+  .sg-match:hover { border-color: var(--accent2); }
+  .sg-match.completed { border-color: rgba(200,240,100,0.3); background: rgba(200,240,100,0.04); }
+  .sg-match .sg-grp { font-size: 8px; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; }
+  .sg-match .sg-p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sg-match .sg-w { font-size: 8px; color: var(--accent); }
+
+  /* ── PLAYERS VIEW ── */
+  .player-search-wrap {
+    position: relative; margin-bottom: 18px; max-width: 380px;
+  }
+  .player-search-input {
+    width: 100%; padding: 9px 12px 9px 34px;
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    outline: none; transition: border-color 0.12s;
+  }
+  .player-search-input:focus { border-color: var(--accent2); }
+  .player-search-input::placeholder { color: var(--text3); }
+  .player-search-icon {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--text3); font-size: 13px; pointer-events: none;
+  }
+
+  .player-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 8px;
+  }
+  .player-card {
+    padding: 12px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .player-card:hover { border-color: var(--accent2); background: var(--surface2); }
+  .player-card-name {
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--text); margin-bottom: 5px;
+  }
+  .player-card-meta {
+    font-size: 10px; color: var(--text3); display: flex; gap: 10px; align-items: center;
+  }
+  .player-card-group {
+    padding: 2px 6px; border-radius: 4px; font-size: 9px; letter-spacing: 0.06em;
+  }
+  .pc-ga { background: rgba(200,240,100,0.12); color: var(--accent); }
+  .pc-gb { background: rgba(123,110,246,0.12); color: var(--accent2); }
+  .pc-gc { background: rgba(100,200,240,0.12); color: var(--accent4); }
+  .pc-gd { background: rgba(240,100,100,0.12); color: var(--accent3); }
+  .player-card-matches {
+    margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--border);
+    font-size: 10px; color: var(--text3); display: flex; flex-direction: column; gap: 2px;
+  }
+  .pm-line { display: flex; justify-content: space-between; }
+  .pm-line.won { color: var(--accent); }
+  .pm-line.lost { color: var(--accent3); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    z-index: 200; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 12px; width: 90%; max-width: 520px;
+    max-height: 80vh; overflow-y: auto; padding: 24px;
+  }
+  .modal-title {
+    font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700;
+    color: var(--text); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-close {
+    background: none; border: none; color: var(--text3); cursor: pointer;
+    font-size: 18px; padding: 2px 6px; border-radius: 4px;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .export-opt {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border: 1px solid var(--border);
+    border-radius: 8px; cursor: pointer; transition: all 0.12s; margin-bottom: 8px;
+  }
+  .export-opt:hover { border-color: var(--accent); background: rgba(200,240,100,0.04); }
+  .export-opt-icon { font-size: 20px; }
+  .export-opt-text strong { font-size: 12px; color: var(--text); display: block; font-weight: 500; }
+  .export-opt-text span { font-size: 10px; color: var(--text3); }
+
+  .kbd {
+    display: inline-block; padding: 1px 5px; border-radius: 3px;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace;
+  }
+  .shortcut-grid {
+    display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; font-size: 11px; color: var(--text2);
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--text);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  /* ── ADMIN LOCK ── */
+  .admin-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .admin-btn:hover { border-color: var(--accent); color: var(--text2); }
+  .admin-btn.unlocked {
+    border-color: rgba(200,240,100,0.4);
+    color: var(--accent);
+    background: rgba(200,240,100,0.06);
+  }
+  .admin-btn .lock-icon { font-size: 13px; }
+
+  body.locked .inspector-form-fields input,
+  body.locked .inspector-form-fields select,
+  body.locked .inspector-form-fields textarea {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  body.locked .inspector-form-fields .action-row { display: none; }
+  body.locked .inspector-form-fields .winner-badge { pointer-events: none; }
+
+  .locked-banner {
+    display: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: rgba(240,100,100,0.08);
+    border: 1px solid rgba(240,100,100,0.2);
+    color: var(--accent3);
+    font-size: 10px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  body.locked .locked-banner { display: block; }
+  body:not(.locked) .locked-banner { display: none; }
+
+  .pw-input {
+    width: 100%;
+    padding: 10px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    outline: none;
+    margin: 12px 0;
+    transition: border-color 0.15s;
+  }
+  .pw-input:focus { border-color: var(--accent2); }
+  .pw-error {
+    color: var(--accent3);
+    font-size: 11px;
+    margin-top: -6px;
+    margin-bottom: 8px;
+    display: none;
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    header, .sidebar, .toast, .modal-overlay { display: none !important; }
+    .layout { grid-template-columns: 1fr !important; }
+    .main { padding: 12px !important; }
+    body { background: #fff !important; color: #000 !important; }
+    .match-card { background: #fff !important; border-color: #ccc !important; }
+    .match-player-row { color: #333 !important; }
+    .match-meta { background: #f5f5f5 !important; color: #666 !important; }
+    .panel { display: block !important; page-break-before: always; }
+    .panel:first-child { page-break-before: auto; }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar {
+      position: fixed; left: -290px; top: 53px; width: 280px;
+      height: calc(100vh - 53px); transition: left 0.25s; z-index: 50;
+    }
+    .sidebar.mobile-open { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,0.4); }
+    .mobile-menu-btn { display: inline-flex !important; }
+    .header-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('mobile-open')">&#9776;</button>
+    <div class="logo">CCT <span>Spring 2026</span></div>
+  </div>
+  <div class="header-center">
+    <button class="btn-icon" id="undo-btn" title="Undo (Ctrl+Z)" onclick="undo()" disabled>&#8630;</button>
+    <button class="btn-icon" id="redo-btn" title="Redo (Ctrl+Y)" onclick="redo()" disabled>&#8631;</button>
+  </div>
+  <div class="header-right">
+    <div class="status-dot"></div>
+    <span class="status-text" id="save-status">unsaved changes</span>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">&#9790;</button>
+    <button class="btn" onclick="openModal('shortcuts-modal')">&#9000; Keys</button>
+    <button class="btn" onclick="openModal('export-modal')">Export</button>
+    <button class="btn" onclick="guardedAction(clearResults)">Reset</button>
+    <button class="btn btn-primary" onclick="guardedAction(saveResults)">Save</button>
+    <button class="admin-btn" id="admin-btn" onclick="toggleAdmin()">
+      <span class="lock-icon" id="lock-icon">&#128274;</span>
+      <span id="admin-label">Admin</span>
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="stats-bar">
+      <div class="stat-box"><div class="stat-num" id="stat-completed">0</div><div class="stat-label">Played</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-remaining">0</div><div class="stat-label">Remain</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-players">46</div><div class="stat-label">Players</div></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Brackets</div>
+      <div class="tab-list" id="bracket-tabs">
+        <button class="tab-btn active" onclick="switchBracket('openA')" id="tab-openA">
+          Group Red <span class="pill" id="pill-openA">0/7</span>
+        </button>
+        <button class="tab-btn" onclick="switchBracket('openB')" id="tab-openB">
+          Group Blue <span class="pill" id="pill-openB">0/11</span>
+        </button>
+        <button class="tab-btn" onclick="switchBracket('openC')" id="tab-openC">
+          Group Green <span class="pill" id="pill-openC">0/9</span>
+        </button>
+        <button class="tab-btn" onclick="switchBracket('womens')" id="tab-womens">
+          Group Gold <span class="pill" id="pill-womens">0/6</span>
+        </button>
+      </div>
+      <div class="view-btns">
+        <button class="view-btn" onclick="showView('schedule')" id="vbtn-schedule">&#128197; Schedule</button>
+        <button class="view-btn" onclick="showView('players')" id="vbtn-players">&#128101; Players</button>
+      </div>
+    </div>
+
+    <div class="inspector" id="inspector">
+      <div class="inspector-empty" id="inspector-empty">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+        <div>Click a match to<br>edit results</div>
+      </div>
+      <div id="inspector-form" style="display:none">
+        <div class="inspector-title" id="form-title">Match</div>
+        <div class="locked-banner">&#128274; Viewing only — log in as Admin to edit</div>
+        <div class="inspector-form-fields">
+        <div class="field-group">
+          <div class="field-label">Player 1</div>
+          <div style="font-size:11px;color:var(--text2);padding:4px 0" id="form-p1"></div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Player 2</div>
+          <div style="font-size:11px;color:var(--text2);padding:4px 0" id="form-p2"></div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Schedule</div>
+          <select class="field-input" id="form-time" onchange="markDirty()">
+            <option value="">— time —</option>
+            <option>Sat 12PM</option><option>Sat 1PM</option><option>Sat 2PM</option>
+            <option>Sat 3PM</option><option>Sat 4PM</option><option>Sat 5PM</option>
+            <option>Sat 6PM</option><option>Sat 7PM</option><option>Sat 8PM</option><option>Sat 9PM</option>
+            <option>Sun 12PM</option><option>Sun 1PM</option><option>Sun 2PM</option>
+            <option>Sun 3PM</option><option>Sun 4PM</option><option>Sun 5PM</option>
+            <option>Sun 6PM</option><option>Sun 7PM</option><option>Sun 8PM</option><option>Sun 9PM</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Score (optional)</div>
+          <div class="score-row">
+            <input class="field-input" type="text" placeholder="e.g. 6-4" id="score-p1" maxlength="16" oninput="markDirty()">
+            <input class="field-input" type="text" placeholder="e.g. 3-6" id="score-p2" maxlength="16" oninput="markDirty()">
+          </div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Winner</div>
+          <select class="field-input" id="winner-select" onchange="onWinnerChange()">
+            <option value="">— not played —</option>
+            <option value="p1" id="winner-opt-p1"></option>
+            <option value="p2" id="winner-opt-p2"></option>
+          </select>
+          <div id="winner-badge-wrap" style="display:none">
+            <div class="winner-badge">&#10003; <span id="winner-badge-name"></span> advances</div>
+          </div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Notes</div>
+          <textarea class="field-textarea" id="form-notes" placeholder="Add notes..." oninput="markDirty()"></textarea>
+        </div>
+        <div class="action-row">
+          <button class="btn" onclick="clearMatch()">Clear</button>
+          <button class="btn btn-primary" onclick="applyMatch()">Apply</button>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="sidebar-label">Legend</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(200,240,100,0.5)"></div>Winner / advances</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(123,110,246,0.5)"></div>Selected match</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--border2)"></div>TBD / not yet played</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ══════ OPEN A ══════ -->
+    <div class="panel active" id="panel-openA">
+      <div class="bracket-header">
+        <div class="bracket-title">Group Red</div>
+        <div class="bracket-subtitle">10 players · Single elimination + consolation (QF losers feed in)</div>
+      </div>
+
+      <div class="bracket-area" id="bracket-openA">
+
+        <!-- R1 play-in -->
+        <div class="round-col">
+          <div class="round-header">Round 1</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-A-R1-1" onclick="selectMatch('A-R1-1')">
+                <div class="match-player-row" id="p-A-R1-1-1">Kyle Lee</div>
+                <div class="match-player-row" id="p-A-R1-1-2">Varun Saikia</div>
+                <div class="match-meta"><span>Sat 12PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:202px">
+              <div class="match-card" id="m-A-R1-2" onclick="selectMatch('A-R1-2')">
+                <div class="match-player-row" id="p-A-R1-2-1">João Soares</div>
+                <div class="match-player-row" id="p-A-R1-2-2">Abhinav Akkiraju</div>
+                <div class="match-meta"><span>Sat 12PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QF -->
+        <div class="round-col">
+          <div class="round-header">Quarterfinals</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-A-QF-1" onclick="selectMatch('A-QF-1')">
+                <div class="match-player-row" id="p-A-QF-1-1"><span class="seed-badge">&#9312;</span>Abishek Anand</div>
+                <div class="match-player-row tbd" id="p-A-QF-1-2">W(Lee/Saikia)</div>
+                <div class="match-meta"><span>Sat 3PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:14px">
+              <div class="match-card" id="m-A-QF-2" onclick="selectMatch('A-QF-2')">
+                <div class="match-player-row" id="p-A-QF-2-1">Gurucharan Ganapathi</div>
+                <div class="match-player-row" id="p-A-QF-2-2">Sumanth Sura</div>
+                <div class="match-meta"><span>Sat 3PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:14px">
+              <div class="match-card" id="m-A-QF-3" onclick="selectMatch('A-QF-3')">
+                <div class="match-player-row" id="p-A-QF-3-1">Jaden Oh</div>
+                <div class="match-player-row" id="p-A-QF-3-2">Daniel Song</div>
+                <div class="match-meta"><span>Sat 4PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:14px">
+              <div class="match-card" id="m-A-QF-4" onclick="selectMatch('A-QF-4')">
+                <div class="match-player-row" id="p-A-QF-4-1"><span class="seed-badge">&#9313;</span>Jonathan Chen</div>
+                <div class="match-player-row tbd" id="p-A-QF-4-2">W(Soares/Akkiraju)</div>
+                <div class="match-meta"><span>Sat 4PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SF -->
+        <div class="round-col">
+          <div class="round-header">Semifinals</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:52px">
+              <div class="match-card" id="m-A-SF-1" onclick="selectMatch('A-SF-1')">
+                <div class="match-player-row tbd" id="p-A-SF-1-1">W(QF1)</div>
+                <div class="match-player-row tbd" id="p-A-SF-1-2">W(QF2)</div>
+                <div class="match-meta"><span>Sun 12PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:96px">
+              <div class="match-card" id="m-A-SF-2" onclick="selectMatch('A-SF-2')">
+                <div class="match-player-row tbd" id="p-A-SF-2-1">W(QF3)</div>
+                <div class="match-player-row tbd" id="p-A-SF-2-2">W(QF4)</div>
+                <div class="match-meta"><span>Sun 12PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Final -->
+        <div class="round-col">
+          <div class="round-header">Final</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:130px">
+              <div class="match-card final-match" id="m-A-F-1" onclick="selectMatch('A-F-1')">
+                <div class="match-player-row tbd" id="p-A-F-1-1">W(SF1)</div>
+                <div class="match-player-row tbd" id="p-A-F-1-2">W(SF2)</div>
+                <div class="match-meta"><span>Sun 5PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Consolation -->
+      <div class="section-break">
+        <div class="section-break-label">Consolation Bracket</div>
+        <div class="section-break-line"></div>
+        <div style="font-size:10px;color:var(--text3);white-space:nowrap">R1 &amp; QF losers guaranteed 2nd match</div>
+      </div>
+
+      <div class="bracket-area">
+        <!-- Consol R1: R1 losers -->
+        <div class="round-col">
+          <div class="round-header">Consol R1</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-A-CR1-1" onclick="selectMatch('A-CR1-1')">
+                <div class="match-player-row tbd" id="p-A-CR1-1-1">L(Lee/Saikia)</div>
+                <div class="match-player-row tbd" id="p-A-CR1-1-2">L(Soares/Akkiraju)</div>
+                <div class="match-meta"><span>Sat 3PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Consol R2: QF losers drop in -->
+        <div class="round-col">
+          <div class="round-header">Consol R2</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-A-CR2-1" onclick="selectMatch('A-CR2-1')">
+                <div class="match-player-row tbd" id="p-A-CR2-1-1">L(QF1)</div>
+                <div class="match-player-row tbd" id="p-A-CR2-1-2">L(QF2)</div>
+                <div class="match-meta"><span>Sun 12PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:14px">
+              <div class="match-card" id="m-A-CR2-2" onclick="selectMatch('A-CR2-2')">
+                <div class="match-player-row tbd" id="p-A-CR2-2-1">L(QF3)</div>
+                <div class="match-player-row tbd" id="p-A-CR2-2-2">L(QF4)</div>
+                <div class="match-meta"><span>Sun 12PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Consol SF -->
+        <div class="round-col">
+          <div class="round-header">Consol SF</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:26px">
+              <div class="match-card" id="m-A-CSF-1" onclick="selectMatch('A-CSF-1')">
+                <div class="match-player-row tbd" id="p-A-CSF-1-1">W(CR2-1)</div>
+                <div class="match-player-row tbd" id="p-A-CSF-1-2">W(CR2-2)</div>
+                <div class="match-meta"><span>Sun 3PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Consol Final -->
+        <div class="round-col">
+          <div class="round-header">Consol Final</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:10px">
+              <div class="match-card" id="m-A-CF-1" onclick="selectMatch('A-CF-1')">
+                <div class="match-player-row tbd" id="p-A-CF-1-1">W(CR1-1)</div>
+                <div class="match-player-row tbd" id="p-A-CF-1-2">W(CSF)</div>
+                <div class="match-meta"><span>Sun 5PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ OPEN B ══════ -->
+    <div class="panel" id="panel-openB">
+      <div class="bracket-header">
+        <div class="bracket-title">Group Blue</div>
+        <div class="bracket-subtitle">15 players · 7 R1 matches + 1 bye → QF → SF → Final</div>
+      </div>
+
+      <div class="bracket-area" id="bracket-openB">
+        <div class="round-col">
+          <div class="round-header">Round 1</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-B-R1-1" onclick="selectMatch('B-R1-1')">
+                <div class="match-player-row" id="p-B-R1-1-1"><span class="seed-badge">&#9312;</span>Saumya Goyal</div>
+                <div class="match-player-row" id="p-B-R1-1-2">Demetrius DeMammos</div>
+                <div class="match-meta"><span>Sat 1PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:8px">
+              <div class="match-card bye-match">
+                <div class="match-player-row">Noah Yin</div>
+                <div class="match-player-row tbd">BYE</div>
+                <div class="match-meta"><span>BYE</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:8px">
+              <div class="match-card" id="m-B-R1-3" onclick="selectMatch('B-R1-3')">
+                <div class="match-player-row" id="p-B-R1-3-1"><span class="seed-badge">&#9313;</span>Samuel Zeitler</div>
+                <div class="match-player-row" id="p-B-R1-3-2">Yuki Kamiya</div>
+                <div class="match-meta"><span>Sat 1PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:8px">
+              <div class="match-card" id="m-B-R1-4" onclick="selectMatch('B-R1-4')">
+                <div class="match-player-row" id="p-B-R1-4-1">Mario Cruz</div>
+                <div class="match-player-row" id="p-B-R1-4-2">Utkrisht Sharma</div>
+                <div class="match-meta"><span>Sat 1PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:8px">
+              <div class="match-card" id="m-B-R1-5" onclick="selectMatch('B-R1-5')">
+                <div class="match-player-row" id="p-B-R1-5-1"><span class="seed-badge">&#9314;</span>Dhruv Shah</div>
+                <div class="match-player-row" id="p-B-R1-5-2">Abhinav Bhargava</div>
+                <div class="match-meta"><span>Sat 2PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:8px">
+              <div class="match-card" id="m-B-R1-6" onclick="selectMatch('B-R1-6')">
+                <div class="match-player-row" id="p-B-R1-6-1">Ethan Huang</div>
+                <div class="match-player-row" id="p-B-R1-6-2">Kadin Zhang</div>
+                <div class="match-meta"><span>Sat 2PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:8px">
+              <div class="match-card" id="m-B-R1-7" onclick="selectMatch('B-R1-7')">
+                <div class="match-player-row" id="p-B-R1-7-1">Manjunath Bhat</div>
+                <div class="match-player-row" id="p-B-R1-7-2">Runcheng Liu</div>
+                <div class="match-meta"><span>Sun 12PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:8px">
+              <div class="match-card" id="m-B-R1-8" onclick="selectMatch('B-R1-8')">
+                <div class="match-player-row" id="p-B-R1-8-1"><span class="seed-badge">&#9315;</span>John Li</div>
+                <div class="match-player-row" id="p-B-R1-8-2">Alfredo Barandearan</div>
+                <div class="match-meta"><span>Sun 1PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="round-col">
+          <div class="round-header">Quarterfinals</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:44px">
+              <div class="match-card" id="m-B-QF-1" onclick="selectMatch('B-QF-1')">
+                <div class="match-player-row tbd" id="p-B-QF-1-1">W(R1-1)</div>
+                <div class="match-player-row" id="p-B-QF-1-2">Noah Yin</div>
+                <div class="match-meta"><span>Sun 1PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:96px">
+              <div class="match-card" id="m-B-QF-2" onclick="selectMatch('B-QF-2')">
+                <div class="match-player-row tbd" id="p-B-QF-2-1">W(R1-3)</div>
+                <div class="match-player-row tbd" id="p-B-QF-2-2">W(R1-4)</div>
+                <div class="match-meta"><span>Sun 1PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:96px">
+              <div class="match-card" id="m-B-QF-3" onclick="selectMatch('B-QF-3')">
+                <div class="match-player-row tbd" id="p-B-QF-3-1">W(R1-5)</div>
+                <div class="match-player-row tbd" id="p-B-QF-3-2">W(R1-6)</div>
+                <div class="match-meta"><span>Sun 1PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:96px">
+              <div class="match-card" id="m-B-QF-4" onclick="selectMatch('B-QF-4')">
+                <div class="match-player-row tbd" id="p-B-QF-4-1">W(R1-7)</div>
+                <div class="match-player-row tbd" id="p-B-QF-4-2">W(R1-8)</div>
+                <div class="match-meta"><span>Sun 2PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="round-col">
+          <div class="round-header">Semifinals</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:132px">
+              <div class="match-card" id="m-B-SF-1" onclick="selectMatch('B-SF-1')">
+                <div class="match-player-row tbd" id="p-B-SF-1-1">W(QF1)</div>
+                <div class="match-player-row tbd" id="p-B-SF-1-2">W(QF2)</div>
+                <div class="match-meta"><span>Sun 3PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:272px">
+              <div class="match-card" id="m-B-SF-2" onclick="selectMatch('B-SF-2')">
+                <div class="match-player-row tbd" id="p-B-SF-2-1">W(QF3)</div>
+                <div class="match-player-row tbd" id="p-B-SF-2-2">W(QF4)</div>
+                <div class="match-meta"><span>Sun 3PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="round-col">
+          <div class="round-header">Final</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:308px">
+              <div class="match-card final-match" id="m-B-F-1" onclick="selectMatch('B-F-1')">
+                <div class="match-player-row tbd" id="p-B-F-1-1">W(SF1)</div>
+                <div class="match-player-row tbd" id="p-B-F-1-2">W(SF2)</div>
+                <div class="match-meta"><span>Sun 4PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-break">
+        <div class="section-break-label">Consolation Bracket</div>
+        <div class="section-break-line"></div>
+        <div style="font-size:10px;color:var(--text3);white-space:nowrap">L(R1-1) receives bye to Consol SF</div>
+      </div>
+      <div class="bracket-area">
+        <div class="round-col">
+          <div class="round-header">Consol R1</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-B-CR1-1" onclick="selectMatch('B-CR1-1')">
+                <div class="match-player-row tbd" id="p-B-CR1-1-1">L(Zeitler/Kamiya)</div>
+                <div class="match-player-row tbd" id="p-B-CR1-1-2">L(Cruz/Sharma)</div>
+                <div class="match-meta"><span>Sat 5PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:8px">
+              <div class="match-card" id="m-B-CR1-2" onclick="selectMatch('B-CR1-2')">
+                <div class="match-player-row tbd" id="p-B-CR1-2-1">L(Shah/Bhargava)</div>
+                <div class="match-player-row tbd" id="p-B-CR1-2-2">L(Huang/Zhang)</div>
+                <div class="match-meta"><span>Sat 5PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:8px">
+              <div class="match-card" id="m-B-CR1-3" onclick="selectMatch('B-CR1-3')">
+                <div class="match-player-row tbd" id="p-B-CR1-3-1">L(Bhat/Liu)</div>
+                <div class="match-player-row tbd" id="p-B-CR1-3-2">L(Li/Alfredo)</div>
+                <div class="match-meta"><span>Sun 2PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="round-col">
+          <div class="round-header">Consol SF</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:8px">
+              <div class="match-card" id="m-B-CSF-1" onclick="selectMatch('B-CSF-1')">
+                <div class="match-player-row tbd" id="p-B-CSF-1-1">L(Goyal/DeMammos)</div>
+                <div class="match-player-row tbd" id="p-B-CSF-1-2">W(CR1-1)</div>
+                <div class="match-meta"><span>Sat 7PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:46px">
+              <div class="match-card" id="m-B-CSF-2" onclick="selectMatch('B-CSF-2')">
+                <div class="match-player-row tbd" id="p-B-CSF-2-1">W(CR1-2)</div>
+                <div class="match-player-row tbd" id="p-B-CSF-2-2">W(CR1-3)</div>
+                <div class="match-meta"><span>Sat 8PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="round-col">
+          <div class="round-header">Consol Final</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:34px">
+              <div class="match-card" id="m-B-CF-1" onclick="selectMatch('B-CF-1')">
+                <div class="match-player-row tbd" id="p-B-CF-1-1">W(CSF1)</div>
+                <div class="match-player-row tbd" id="p-B-CF-1-2">W(CSF2)</div>
+                <div class="match-meta"><span>Sat 9PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ OPEN C ══════ -->
+    <div class="panel" id="panel-openC">
+      <div class="bracket-header">
+        <div class="bracket-title">Group Green</div>
+        <div class="bracket-subtitle">11 players · 3 R1 play-ins (&#9312;&#9313; + 3 direct to QF) → QF → SF → Final</div>
+      </div>
+
+      <div class="bracket-area" id="bracket-openC">
+
+        <!-- R1 play-in -->
+        <div class="round-col">
+          <div class="round-header">Round 1</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-C-R1-1" onclick="selectMatch('C-R1-1')">
+                <div class="match-player-row" id="p-C-R1-1-1">Hua Bai</div>
+                <div class="match-player-row" id="p-C-R1-1-2">Wenbin Zhou</div>
+                <div class="match-meta"><span>Sat 5PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:108px">
+              <div class="match-card" id="m-C-R1-2" onclick="selectMatch('C-R1-2')">
+                <div class="match-player-row" id="p-C-R1-2-1">Khiem Vuong</div>
+                <div class="match-player-row" id="p-C-R1-2-2">Abhishek Nagarkar</div>
+                <div class="match-meta"><span>Sat 5PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:14px">
+              <div class="match-card" id="m-C-R1-3" onclick="selectMatch('C-R1-3')">
+                <div class="match-player-row" id="p-C-R1-3-1">Alejandro Otero</div>
+                <div class="match-player-row" id="p-C-R1-3-2">Shashwat Saxena</div>
+                <div class="match-meta"><span>Sat 5PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QF -->
+        <div class="round-col">
+          <div class="round-header">Quarterfinals</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-C-QF-1" onclick="selectMatch('C-QF-1')">
+                <div class="match-player-row" id="p-C-QF-1-1"><span class="seed-badge">&#9312;</span>Hagen Qian</div>
+                <div class="match-player-row tbd" id="p-C-QF-1-2">W(Bai/Zhou)</div>
+                <div class="match-meta"><span>Sat 8PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:14px">
+              <div class="match-card" id="m-C-QF-2" onclick="selectMatch('C-QF-2')">
+                <div class="match-player-row" id="p-C-QF-2-1">Vihaan Misra</div>
+                <div class="match-player-row" id="p-C-QF-2-2">Veer Banwait</div>
+                <div class="match-meta"><span>Sat 8PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:14px">
+              <div class="match-card" id="m-C-QF-3" onclick="selectMatch('C-QF-3')">
+                <div class="match-player-row" id="p-C-QF-3-1">Mike Mo</div>
+                <div class="match-player-row tbd" id="p-C-QF-3-2">W(Vuong/Nagarkar)</div>
+                <div class="match-meta"><span>Sat 8PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:14px">
+              <div class="match-card" id="m-C-QF-4" onclick="selectMatch('C-QF-4')">
+                <div class="match-player-row" id="p-C-QF-4-1"><span class="seed-badge">&#9313;</span>Luca Cyrus</div>
+                <div class="match-player-row tbd" id="p-C-QF-4-2">W(Otero/Saxena)</div>
+                <div class="match-meta"><span>Sat 8PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SF -->
+        <div class="round-col">
+          <div class="round-header">Semifinals</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:52px">
+              <div class="match-card" id="m-C-SF-1" onclick="selectMatch('C-SF-1')">
+                <div class="match-player-row tbd" id="p-C-SF-1-1">W(QF1)</div>
+                <div class="match-player-row tbd" id="p-C-SF-1-2">W(QF2)</div>
+                <div class="match-meta"><span>Sat 9PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:96px">
+              <div class="match-card" id="m-C-SF-2" onclick="selectMatch('C-SF-2')">
+                <div class="match-player-row tbd" id="p-C-SF-2-1">W(QF3)</div>
+                <div class="match-player-row tbd" id="p-C-SF-2-2">W(QF4)</div>
+                <div class="match-meta"><span>Sat 9PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Final -->
+        <div class="round-col">
+          <div class="round-header">Final</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:130px">
+              <div class="match-card final-match" id="m-C-F-1" onclick="selectMatch('C-F-1')">
+                <div class="match-player-row tbd" id="p-C-F-1-1">W(SF1)</div>
+                <div class="match-player-row tbd" id="p-C-F-1-2">W(SF2)</div>
+                <div class="match-meta"><span>Sun 2PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-break">
+        <div class="section-break-label">Consolation Bracket</div>
+        <div class="section-break-line"></div>
+        <div style="font-size:10px;color:var(--text3);white-space:nowrap">R1 &amp; QF losers guaranteed 2nd match · L(Bai/Zhou) bye to Consol SF</div>
+      </div>
+      <div class="bracket-area">
+        <!-- Consol R1: R1 losers -->
+        <div class="round-col">
+          <div class="round-header">Consol R1</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-C-CR1-1" onclick="selectMatch('C-CR1-1')">
+                <div class="match-player-row tbd" id="p-C-CR1-1-1">L(Vuong/Nagarkar)</div>
+                <div class="match-player-row tbd" id="p-C-CR1-1-2">L(Otero/Saxena)</div>
+                <div class="match-meta"><span>Sat 7PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Consol R2: QF losers -->
+        <div class="round-col">
+          <div class="round-header">Consol R2</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-C-CR2-1" onclick="selectMatch('C-CR2-1')">
+                <div class="match-player-row tbd" id="p-C-CR2-1-1">L(QF1)</div>
+                <div class="match-player-row tbd" id="p-C-CR2-1-2">L(QF2)</div>
+                <div class="match-meta"><span>Sun 12PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:14px">
+              <div class="match-card" id="m-C-CR2-2" onclick="selectMatch('C-CR2-2')">
+                <div class="match-player-row tbd" id="p-C-CR2-2-1">L(QF3)</div>
+                <div class="match-player-row tbd" id="p-C-CR2-2-2">L(QF4)</div>
+                <div class="match-meta"><span>Sun 12PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Consol SF -->
+        <div class="round-col">
+          <div class="round-header">Consol SF</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card" id="m-C-CSF-1" onclick="selectMatch('C-CSF-1')">
+                <div class="match-player-row tbd" id="p-C-CSF-1-1">L(Bai/Zhou)</div>
+                <div class="match-player-row tbd" id="p-C-CSF-1-2">W(CR2-1)</div>
+                <div class="match-meta"><span>Sun 3PM</span></div>
+              </div>
+            </div>
+            <div class="match-wrapper" style="margin-top:14px">
+              <div class="match-card" id="m-C-CSF-2" onclick="selectMatch('C-CSF-2')">
+                <div class="match-player-row tbd" id="p-C-CSF-2-1">W(CR1-1)</div>
+                <div class="match-player-row tbd" id="p-C-CSF-2-2">W(CR2-2)</div>
+                <div class="match-meta"><span>Sun 3PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Consol Final -->
+        <div class="round-col">
+          <div class="round-header">Consol Final</div>
+          <div class="round-matches">
+            <div class="match-wrapper" style="margin-top:26px">
+              <div class="match-card" id="m-C-CF-1" onclick="selectMatch('C-CF-1')">
+                <div class="match-player-row tbd" id="p-C-CF-1-1">W(CSF-1)</div>
+                <div class="match-player-row tbd" id="p-C-CF-1-2">W(CSF-2)</div>
+                <div class="match-meta"><span>Sun 5PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ WOMEN'S ══════ -->
+    <div class="panel" id="panel-womens">
+      <div class="bracket-header">
+        <div class="bracket-title">Group Gold</div>
+        <div class="bracket-subtitle">Round Robin · 3 players · Top 2 advance to Final</div>
+      </div>
+
+      <div class="rr-grid" id="rr-grid-womens">
+        <div class="rr-match" id="m-W-RR-1" onclick="selectMatch('W-RR-1')">
+          <div class="rr-num">RR 1</div>
+          <div class="rr-players">
+            <span class="rr-p1" id="p-W-RR-1-1">Zining Chen</span>
+            <span class="rr-vs">vs</span>
+            <span class="rr-p2" id="p-W-RR-1-2">Massa Baali</span>
+          </div>
+          <div class="rr-time">Sat 3PM</div>
+        </div>
+        <div class="rr-match" id="m-W-RR-2" onclick="selectMatch('W-RR-2')">
+          <div class="rr-num">RR 2</div>
+          <div class="rr-players">
+            <span class="rr-p1" id="p-W-RR-2-1">Gabriela Romanelli</span>
+            <span class="rr-vs">vs</span>
+            <span class="rr-p2" id="p-W-RR-2-2">Zining Chen</span>
+          </div>
+          <div class="rr-time">Sun 2PM</div>
+        </div>
+        <div class="rr-match" id="m-W-RR-3" onclick="selectMatch('W-RR-3')">
+          <div class="rr-num">RR 3</div>
+          <div class="rr-players">
+            <span class="rr-p1" id="p-W-RR-3-1">Gabriela Romanelli</span>
+            <span class="rr-vs">vs</span>
+            <span class="rr-p2" id="p-W-RR-3-2">Massa Baali</span>
+          </div>
+          <div class="rr-time">Sun 3PM</div>
+        </div>
+      </div>
+
+      <div class="standings" id="womens-standings">
+        <div class="standings-title">Standings</div>
+        <table class="standings-table" id="standings-table">
+          <thead><tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>Pct</th></tr></thead>
+          <tbody id="standings-body">
+            <tr><td class="standing-rank">1</td><td>Gabriela Romanelli</td><td>0</td><td>0</td><td>—</td></tr>
+            <tr><td class="standing-rank">2</td><td>Zining Chen</td><td>0</td><td>0</td><td>—</td></tr>
+            <tr><td class="standing-rank">3</td><td>Massa Baali</td><td>0</td><td>0</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-break" style="margin-top:28px">
+        <div class="section-break-label">Final · Sun 5PM</div>
+        <div class="section-break-line"></div>
+      </div>
+
+      <div class="bracket-area">
+        <div class="round-col">
+          <div class="round-header">Final</div>
+          <div class="round-matches">
+            <div class="match-wrapper">
+              <div class="match-card final-match" id="m-W-F-1" onclick="selectMatch('W-F-1')">
+                <div class="match-player-row tbd" id="p-W-F-1-1">Top 2 finisher</div>
+                <div class="match-player-row tbd" id="p-W-F-1-2">Top 2 finisher</div>
+                <div class="match-meta"><span>Sun 5PM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ SCHEDULE VIEW ══════ -->
+    <div class="panel" id="panel-schedule">
+      <div class="bracket-header">
+        <div class="bracket-title">Schedule</div>
+        <div class="bracket-subtitle">Matches by time slot — click a match to edit</div>
+      </div>
+      <div class="schedule-toolbar">
+        <button class="sch-filter active" onclick="filterSchedule('all',this)">All</button>
+        <button class="sch-filter" onclick="filterSchedule('sat',this)">Saturday</button>
+        <button class="sch-filter" onclick="filterSchedule('sun',this)">Sunday</button>
+        <span style="margin-left:auto;font-size:10px;color:var(--text3)" id="conflict-warn"></span>
+      </div>
+      <div id="schedule-container"></div>
+    </div>
+
+    <!-- ══════ PLAYERS VIEW ══════ -->
+    <div class="panel" id="panel-players">
+      <div class="bracket-header">
+        <div class="bracket-title">Players</div>
+        <div class="bracket-subtitle">46 players across 4 groups</div>
+      </div>
+      <div class="player-search-wrap">
+        <span class="player-search-icon">&#128269;</span>
+        <input type="text" class="player-search-input" placeholder="Search players..." id="player-search" oninput="renderPlayers()">
+      </div>
+      <div class="player-grid" id="player-grid"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="export-modal" onclick="if(event.target===this)closeModals()">
+  <div class="modal">
+    <div class="modal-title">Export <button class="modal-close" onclick="closeModals()">&times;</button></div>
+    <div class="export-opt" onclick="exportText()">
+      <div class="export-opt-icon">&#128196;</div>
+      <div class="export-opt-text"><strong>Copy as Text</strong><span>Plain-text bracket to clipboard</span></div>
+    </div>
+    <div class="export-opt" onclick="exportJSON()">
+      <div class="export-opt-icon">&#128190;</div>
+      <div class="export-opt-text"><strong>Download JSON</strong><span>All results + schedule data</span></div>
+    </div>
+    <div class="export-opt" onclick="window.print();closeModals()">
+      <div class="export-opt-icon">&#128424;</div>
+      <div class="export-opt-text"><strong>Print Brackets</strong><span>Print-friendly view</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="shortcuts-modal" onclick="if(event.target===this)closeModals()">
+  <div class="modal">
+    <div class="modal-title">Keyboard Shortcuts <button class="modal-close" onclick="closeModals()">&times;</button></div>
+    <div class="shortcut-grid">
+      <span>Save results</span><span><span class="kbd">Ctrl</span>+<span class="kbd">S</span></span>
+      <span>Undo</span><span><span class="kbd">Ctrl</span>+<span class="kbd">Z</span></span>
+      <span>Redo</span><span><span class="kbd">Ctrl</span>+<span class="kbd">Y</span></span>
+      <span>Deselect match</span><span><span class="kbd">Esc</span></span>
+      <span>Apply match result</span><span><span class="kbd">Enter</span></span>
+      <span>Toggle theme</span><span><span class="kbd">Ctrl</span>+<span class="kbd">D</span></span>
+      <span>Switch group</span><span><span class="kbd">1</span>–<span class="kbd">4</span></span>
+      <span>Schedule view</span><span><span class="kbd">5</span></span>
+      <span>Players view</span><span><span class="kbd">6</span></span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="admin-modal" onclick="if(event.target===this)closeModals()">
+  <div class="modal">
+    <div class="modal-title">Admin Login <button class="modal-close" onclick="closeModals()">&times;</button></div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:4px">Enter the admin password to unlock editing.</p>
+    <input type="password" class="pw-input" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')submitPassword()">
+    <div class="pw-error" id="pw-error">Incorrect password. Try again.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModals()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitPassword()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg"></span></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  DATA
+// ════════════════════════════════════════════════════════════════
+const MATCHES = {};
+let selectedMatch = null;
+let dirty = false;
+let currentView = 'bracket';
+let scheduleFilter = 'all';
+
+const MATCH_DEFS = {
+  'A-R1-1': {p1:'Kyle Lee', p2:'Varun Saikia', time:'Sat 12PM', group:'A'},
+  'A-R1-2': {p1:'João Soares', p2:'Abhinav Akkiraju', time:'Sat 12PM', group:'A'},
+  'A-QF-1': {p1:'Abishek Anand', p2:'W(Lee/Saikia)', time:'Sat 3PM', group:'A'},
+  'A-QF-2': {p1:'Gurucharan Ganapathi', p2:'Sumanth Sura', time:'Sat 3PM', group:'A'},
+  'A-QF-3': {p1:'Jaden Oh', p2:'Daniel Song', time:'Sat 4PM', group:'A'},
+  'A-QF-4': {p1:'Jonathan Chen', p2:'W(Soares/Akkiraju)', time:'Sat 4PM', group:'A'},
+  'A-SF-1': {p1:'W(QF1)', p2:'W(QF2)', time:'Sun 12PM', group:'A'},
+  'A-SF-2': {p1:'W(QF3)', p2:'W(QF4)', time:'Sun 12PM', group:'A'},
+  'A-F-1':  {p1:'W(SF1)', p2:'W(SF2)', time:'Sun 5PM', group:'A'},
+  'A-CR1-1':{p1:'L(Lee/Saikia)', p2:'L(Soares/Akkiraju)', time:'Sat 3PM', group:'A'},
+  'A-CR2-1':{p1:'L(QF1)', p2:'L(QF2)', time:'Sun 12PM', group:'A'},
+  'A-CR2-2':{p1:'L(QF3)', p2:'L(QF4)', time:'Sun 12PM', group:'A'},
+  'A-CSF-1':{p1:'W(CR2-1)', p2:'W(CR2-2)', time:'Sun 3PM', group:'A'},
+  'A-CF-1': {p1:'W(CR1-1)', p2:'W(CSF)', time:'Sun 5PM', group:'A'},
+
+  'B-R1-1': {p1:'Saumya Goyal', p2:'Demetrius DeMammos', time:'Sat 1PM', group:'B'},
+  'B-R1-3': {p1:'Samuel Zeitler', p2:'Yuki Kamiya', time:'Sat 1PM', group:'B'},
+  'B-R1-4': {p1:'Mario Cruz', p2:'Utkrisht Sharma', time:'Sat 1PM', group:'B'},
+  'B-R1-5': {p1:'Dhruv Shah', p2:'Abhinav Bhargava', time:'Sat 2PM', group:'B'},
+  'B-R1-6': {p1:'Ethan Huang', p2:'Kadin Zhang', time:'Sat 2PM', group:'B'},
+  'B-R1-7': {p1:'Manjunath Bhat', p2:'Runcheng Liu', time:'Sun 12PM', group:'B'},
+  'B-R1-8': {p1:'John Li', p2:'Alfredo Barandearan', time:'Sun 1PM', group:'B'},
+  'B-QF-1': {p1:'W(R1-1)', p2:'Noah Yin', time:'Sun 1PM', group:'B'},
+  'B-QF-2': {p1:'W(R1-3)', p2:'W(R1-4)', time:'Sun 1PM', group:'B'},
+  'B-QF-3': {p1:'W(R1-5)', p2:'W(R1-6)', time:'Sun 1PM', group:'B'},
+  'B-QF-4': {p1:'W(R1-7)', p2:'W(R1-8)', time:'Sun 2PM', group:'B'},
+  'B-SF-1': {p1:'W(QF1)', p2:'W(QF2)', time:'Sun 3PM', group:'B'},
+  'B-SF-2': {p1:'W(QF3)', p2:'W(QF4)', time:'Sun 3PM', group:'B'},
+  'B-F-1':  {p1:'W(SF1)', p2:'W(SF2)', time:'Sun 4PM', group:'B'},
+  'B-CR1-1':{p1:'L(Zeitler/Kamiya)', p2:'L(Cruz/Sharma)', time:'Sat 5PM', group:'B'},
+  'B-CR1-2':{p1:'L(Shah/Bhargava)', p2:'L(Huang/Zhang)', time:'Sat 5PM', group:'B'},
+  'B-CR1-3':{p1:'L(Bhat/Liu)', p2:'L(Li/Alfredo)', time:'Sun 2PM', group:'B'},
+  'B-CSF-1':{p1:'L(Goyal/DeMammos)', p2:'W(CR1-1)', time:'Sat 7PM', group:'B'},
+  'B-CSF-2':{p1:'W(CR1-2)', p2:'W(CR1-3)', time:'Sat 8PM', group:'B'},
+  'B-CF-1': {p1:'W(CSF1)', p2:'W(CSF2)', time:'Sat 9PM', group:'B'},
+
+  'C-R1-1': {p1:'Hua Bai', p2:'Wenbin Zhou', time:'Sat 5PM', group:'C'},
+  'C-R1-2': {p1:'Khiem Vuong', p2:'Abhishek Nagarkar', time:'Sat 5PM', group:'C'},
+  'C-R1-3': {p1:'Alejandro Otero', p2:'Shashwat Saxena', time:'Sat 5PM', group:'C'},
+  'C-QF-1': {p1:'Hagen Qian', p2:'W(Bai/Zhou)', time:'Sat 8PM', group:'C'},
+  'C-QF-2': {p1:'Vihaan Misra', p2:'Veer Banwait', time:'Sat 8PM', group:'C'},
+  'C-QF-3': {p1:'Mike Mo', p2:'W(Vuong/Nagarkar)', time:'Sat 8PM', group:'C'},
+  'C-QF-4': {p1:'Luca Cyrus', p2:'W(Otero/Saxena)', time:'Sat 8PM', group:'C'},
+  'C-SF-1': {p1:'W(QF1)', p2:'W(QF2)', time:'Sat 9PM', group:'C'},
+  'C-SF-2': {p1:'W(QF3)', p2:'W(QF4)', time:'Sat 9PM', group:'C'},
+  'C-F-1':  {p1:'W(SF1)', p2:'W(SF2)', time:'Sun 2PM', group:'C'},
+  'C-CR1-1':{p1:'L(Vuong/Nagarkar)', p2:'L(Otero/Saxena)', time:'Sat 7PM', group:'C'},
+  'C-CR2-1':{p1:'L(QF1)', p2:'L(QF2)', time:'Sun 12PM', group:'C'},
+  'C-CR2-2':{p1:'L(QF3)', p2:'L(QF4)', time:'Sun 12PM', group:'C'},
+  'C-CSF-1':{p1:'L(Bai/Zhou)', p2:'W(CR2-1)', time:'Sun 3PM', group:'C'},
+  'C-CSF-2':{p1:'W(CR1-1)', p2:'W(CR2-2)', time:'Sun 3PM', group:'C'},
+  'C-CF-1': {p1:'W(CSF-1)', p2:'W(CSF-2)', time:'Sun 5PM', group:'C'},
+
+  'W-RR-1': {p1:'Zining Chen', p2:'Massa Baali', time:'Sat 3PM', isRR:true, group:'D'},
+  'W-RR-2': {p1:'Gabriela Romanelli', p2:'Zining Chen', time:'Sun 2PM', isRR:true, group:'D'},
+  'W-RR-3': {p1:'Gabriela Romanelli', p2:'Massa Baali', time:'Sun 3PM', isRR:true, group:'D'},
+  'W-F-1':  {p1:'Top 2 finisher', p2:'Top 2 finisher', time:'Sun 5PM', group:'D'},
+};
+
+const BRACKET_MAP = { 'A':'openA', 'B':'openB', 'C':'openC', 'W':'womens' };
+const GROUP_LABELS = { A:'Group Red', B:'Group Blue', C:'Group Green', D:'Group Gold' };
+
+const TIME_ORDER = [
+  'Sat 12PM','Sat 1PM','Sat 2PM','Sat 3PM','Sat 4PM','Sat 5PM','Sat 6PM','Sat 7PM','Sat 8PM','Sat 9PM',
+  'Sun 12PM','Sun 1PM','Sun 2PM','Sun 3PM','Sun 4PM','Sun 5PM','Sun 6PM','Sun 7PM','Sun 8PM','Sun 9PM'
+];
+
+// ════════════════════════════════════════════════════════════════
+//  UNDO / REDO
+// ════════════════════════════════════════════════════════════════
+const undoStack = [];
+const redoStack = [];
+
+function pushUndo() {
+  undoStack.push(JSON.stringify(MATCHES));
+  if (undoStack.length > 60) undoStack.shift();
+  redoStack.length = 0;
+  updateUndoButtons();
+}
+function undo() {
+  if (!undoStack.length) return;
+  if (!requireAdmin()) return;
+  redoStack.push(JSON.stringify(MATCHES));
+  const prev = JSON.parse(undoStack.pop());
+  Object.keys(MATCHES).forEach(k => delete MATCHES[k]);
+  Object.assign(MATCHES, prev);
+  renderAll(); updateUndoButtons(); markDirty();
+  if (selectedMatch) showInspector(selectedMatch);
+  showToast('Undone');
+}
+function redo() {
+  if (!redoStack.length) return;
+  if (!requireAdmin()) return;
+  undoStack.push(JSON.stringify(MATCHES));
+  const next = JSON.parse(redoStack.pop());
+  Object.keys(MATCHES).forEach(k => delete MATCHES[k]);
+  Object.assign(MATCHES, next);
+  renderAll(); updateUndoButtons(); markDirty();
+  if (selectedMatch) showInspector(selectedMatch);
+  showToast('Redone');
+}
+function updateUndoButtons() {
+  document.getElementById('undo-btn').disabled = !undoStack.length;
+  document.getElementById('redo-btn').disabled = !redoStack.length;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  EDITABLE NAMES
+// ════════════════════════════════════════════════════════════════
+const NAME_OVERRIDES = {};
+
+function initEditableNames() {
+  const saved = localStorage.getItem('cct_names');
+  if (saved) Object.assign(NAME_OVERRIDES, JSON.parse(saved));
+
+  Object.entries(NAME_OVERRIDES).forEach(([elId, name]) => {
+    const m = elId.replace('p-','').match(/^(.+)-(\d)$/);
+    if (!m) return;
+    if (MATCH_DEFS[m[1]]) {
+      if (m[2] === '1') MATCH_DEFS[m[1]].p1 = name;
+      else MATCH_DEFS[m[1]].p2 = name;
+    }
+  });
+
+  document.querySelectorAll('.match-player-row[id^="p-"]').forEach(el => {
+    wrapNameText(el);
+    if (NAME_OVERRIDES[el.id]) {
+      const ns = el.querySelector('.player-name');
+      if (ns) ns.textContent = NAME_OVERRIDES[el.id];
+    }
+  });
+
+  document.querySelectorAll('.rr-p1[id^="p-"], .rr-p2[id^="p-"]').forEach(el => {
+    const sp = document.createElement('span');
+    sp.className = 'player-name';
+    sp.textContent = el.textContent;
+    el.textContent = '';
+    el.appendChild(sp);
+    if (NAME_OVERRIDES[el.id]) sp.textContent = NAME_OVERRIDES[el.id];
+  });
+
+  document.addEventListener('focusin', e => {
+    if (e.target.classList.contains('player-name')) {
+      e.target.dataset.originalName = e.target.textContent.trim();
+    }
+  });
+
+  document.addEventListener('input', e => {
+    if (!e.target.classList.contains('player-name')) return;
+    if (!isAdmin) return;
+    const info = parseNameSpan(e.target);
+    if (!info) return;
+    if (info.pNum === '1') info.def.p1 = info.name; else info.def.p2 = info.name;
+    if (selectedMatch === info.matchId) updateInspectorNames(info.matchId);
+  });
+
+  document.addEventListener('focusout', e => {
+    if (e.target.classList.contains('player-name')) handleNameEdit(e.target);
+  });
+
+  updateNameEditability();
+}
+
+function parseNameSpan(span) {
+  const row = span.closest('[id^="p-"]');
+  if (!row) return null;
+  const name = span.textContent.trim();
+  if (!name) return null;
+  const m = row.id.replace('p-','').match(/^(.+)-(\d)$/);
+  if (!m) return null;
+  const def = MATCH_DEFS[m[1]];
+  if (!def) return null;
+  return { row, name, matchId: m[1], pNum: m[2], def };
+}
+
+function updateInspectorNames(matchId) {
+  const def = MATCH_DEFS[matchId];
+  if (!def) return;
+  document.getElementById('form-p1').textContent = def.p1;
+  document.getElementById('form-p2').textContent = def.p2;
+  document.getElementById('winner-opt-p1').textContent = def.p1;
+  document.getElementById('winner-opt-p2').textContent = def.p2;
+  const result = MATCHES[matchId] || {};
+  updateWinnerBadge(result.winner, def);
+}
+
+function wrapNameText(el) {
+  [...el.childNodes].forEach(node => {
+    if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+      const sp = document.createElement('span');
+      sp.className = 'player-name';
+      sp.textContent = node.textContent;
+      node.replaceWith(sp);
+    }
+  });
+}
+
+function handleNameEdit(span) {
+  if (!isAdmin) return;
+  const info = parseNameSpan(span);
+  if (!info) return;
+  const originalName = span.dataset.originalName || '';
+  delete span.dataset.originalName;
+  if (info.name === originalName) return;
+
+  if (info.pNum === '1') info.def.p1 = info.name; else info.def.p2 = info.name;
+  NAME_OVERRIDES[info.row.id] = info.name;
+  localStorage.setItem('cct_names', JSON.stringify(NAME_OVERRIDES));
+
+  renderMatch(info.matchId);
+  if (selectedMatch === info.matchId) updateInspectorNames(info.matchId);
+  showToast('Name updated');
+  markDirty();
+}
+
+function updateNameEditability() {
+  const v = isAdmin ? 'true' : 'false';
+  document.querySelectorAll('.player-name').forEach(el => el.contentEditable = v);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════
+function init() {
+  const saved = localStorage.getItem('cct_results');
+  if (saved) {
+    Object.assign(MATCHES, JSON.parse(saved));
+    renderAll();
+    dirty = false;
+    updateSaveStatus();
+  }
+  if (localStorage.getItem('cct_theme') === 'light') document.body.classList.add('light');
+  initEditableNames();
+  updateStats();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  VIEW / BRACKET SWITCHING
+// ════════════════════════════════════════════════════════════════
+let currentBracket = 'openA';
+
+function switchBracket(id) {
+  currentView = 'bracket';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id)?.classList.add('active');
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id)?.classList.add('active');
+  currentBracket = id;
+  deselectMatch();
+}
+
+function showView(view) {
+  currentView = view;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('vbtn-' + view)?.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + view)?.classList.add('active');
+  deselectMatch();
+  if (view === 'schedule') renderSchedule();
+  if (view === 'players') renderPlayers();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MATCH SELECTION & INSPECTOR
+// ════════════════════════════════════════════════════════════════
+function selectMatch(id) {
+  if (selectedMatch) {
+    document.getElementById('m-' + selectedMatch)?.classList.remove('selected');
+  }
+  selectedMatch = id;
+  document.getElementById('m-' + id)?.classList.add('selected');
+  showInspector(id);
+}
+
+function deselectMatch() {
+  if (selectedMatch) {
+    document.getElementById('m-' + selectedMatch)?.classList.remove('selected');
+    selectedMatch = null;
+  }
+  document.getElementById('inspector-empty').style.display = 'flex';
+  document.getElementById('inspector-form').style.display = 'none';
+}
+
+function showInspector(id) {
+  const def = MATCH_DEFS[id];
+  if (!def) return;
+  const result = MATCHES[id] || {};
+
+  document.getElementById('inspector-empty').style.display = 'none';
+  document.getElementById('inspector-form').style.display = 'block';
+  document.getElementById('form-title').textContent = 'Match: ' + id;
+  document.getElementById('form-p1').textContent = def.p1;
+  document.getElementById('form-p2').textContent = def.p2;
+  document.getElementById('form-time').value = result.time || def.time || '';
+  document.getElementById('score-p1').value = result.scoreP1 || '';
+  document.getElementById('score-p2').value = result.scoreP2 || '';
+  document.getElementById('form-notes').value = result.notes || '';
+
+  const winSel = document.getElementById('winner-select');
+  document.getElementById('winner-opt-p1').textContent = def.p1;
+  document.getElementById('winner-opt-p2').textContent = def.p2;
+  winSel.value = result.winner || '';
+
+  updateWinnerBadge(result.winner, def);
+}
+
+function onWinnerChange() {
+  const def = MATCH_DEFS[selectedMatch];
+  updateWinnerBadge(document.getElementById('winner-select').value, def);
+  markDirty();
+}
+
+function updateWinnerBadge(winner, def) {
+  const wrap = document.getElementById('winner-badge-wrap');
+  if (winner && def) {
+    wrap.style.display = 'block';
+    document.getElementById('winner-badge-name').textContent = winner === 'p1' ? def.p1 : def.p2;
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  APPLY / CLEAR MATCH
+// ════════════════════════════════════════════════════════════════
+function applyMatch() {
+  if (!selectedMatch) return;
+  if (!requireAdmin()) return;
+  pushUndo();
+
+  const def = MATCH_DEFS[selectedMatch];
+  const winner = document.getElementById('winner-select').value;
+  const scoreP1 = document.getElementById('score-p1').value.trim();
+  const scoreP2 = document.getElementById('score-p2').value.trim();
+  const time = document.getElementById('form-time').value;
+  const notes = document.getElementById('form-notes').value.trim();
+
+  const data = {};
+  if (winner) data.winner = winner;
+  if (scoreP1) data.scoreP1 = scoreP1;
+  if (scoreP2) data.scoreP2 = scoreP2;
+  if (time && time !== def.time) data.time = time;
+  if (notes) data.notes = notes;
+
+  if (Object.keys(data).length) {
+    MATCHES[selectedMatch] = data;
+  } else {
+    delete MATCHES[selectedMatch];
+  }
+
+  renderMatch(selectedMatch);
+  updatePills();
+  updateStats();
+  if (def.isRR) updateStandings();
+  showToast(winner ? `Result saved for ${selectedMatch}` : 'Match updated');
+  markDirty();
+}
+
+function clearMatch() {
+  if (!selectedMatch) return;
+  if (!requireAdmin()) return;
+  pushUndo();
+  delete MATCHES[selectedMatch];
+  showInspector(selectedMatch);
+  renderMatch(selectedMatch);
+  updatePills();
+  updateStats();
+  const def = MATCH_DEFS[selectedMatch];
+  if (def?.isRR) updateStandings();
+  markDirty();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  RENDER MATCHES
+// ════════════════════════════════════════════════════════════════
+function getTime(id) { return MATCHES[id]?.time || MATCH_DEFS[id]?.time || ''; }
+
+function renderMatch(id) {
+  const def = MATCH_DEFS[id];
+  if (!def) return;
+  const result = MATCHES[id];
+  const card = document.getElementById('m-' + id);
+  if (!card) return;
+
+  const metaEl = card.querySelector('.match-meta');
+  if (metaEl) {
+    metaEl.innerHTML = `<span>${getTime(id)}</span>`;
+  }
+
+  // Update RR time display
+  const rrTimeEl = card.querySelector('.rr-time');
+  if (rrTimeEl) {
+    rrTimeEl.textContent = getTime(id);
+  }
+
+  if (def.isRR) {
+    const p1el = document.getElementById('p-' + id + '-1');
+    const p2el = document.getElementById('p-' + id + '-2');
+    if (p1el) p1el.className = 'rr-p1' + (result?.winner === 'p1' ? ' won' : '');
+    if (p2el) p2el.className = 'rr-p2' + (result?.winner === 'p2' ? ' won' : '');
+    card.classList.toggle('has-winner', !!result?.winner);
+    return;
+  }
+
+  const p1el = document.getElementById('p-' + id + '-1');
+  const p2el = document.getElementById('p-' + id + '-2');
+
+  if (p1el && p2el) {
+    p1el.className = 'match-player-row';
+    p2el.className = 'match-player-row';
+
+    if (!result && (def.p1.startsWith('W(') || def.p1.startsWith('L('))) p1el.classList.add('tbd');
+    if (!result && (def.p2.startsWith('W(') || def.p2.startsWith('L('))) p2el.classList.add('tbd');
+
+    if (result?.winner) {
+      if (result.winner === 'p1') {
+        p1el.classList.add('is-winner');
+        p2el.style.opacity = '0.45';
+      } else {
+        p2el.classList.add('is-winner');
+        p1el.style.opacity = '0.45';
+      }
+    } else {
+      p1el.style.opacity = '';
+      p2el.style.opacity = '';
+      if (def.p1.startsWith('W(') || def.p1.startsWith('L(')) p1el.classList.add('tbd');
+      if (def.p2.startsWith('W(') || def.p2.startsWith('L(')) p2el.classList.add('tbd');
+    }
+
+    let s1 = p1el.querySelector('.score-display');
+    let s2 = p2el.querySelector('.score-display');
+    if (s1) s1.remove();
+    if (s2) s2.remove();
+
+    if (result?.scoreP1) {
+      const sd = document.createElement('span');
+      sd.className = 'score-display' + (result.winner === 'p1' ? ' winner-score' : '');
+      sd.textContent = result.scoreP1;
+      p1el.appendChild(sd);
+    }
+    if (result?.scoreP2) {
+      const sd = document.createElement('span');
+      sd.className = 'score-display' + (result.winner === 'p2' ? ' winner-score' : '');
+      sd.textContent = result.scoreP2;
+      p2el.appendChild(sd);
+    }
+  }
+
+  card.classList.toggle('has-winner', !!result?.winner);
+}
+
+function renderAll() {
+  Object.keys(MATCH_DEFS).forEach(id => renderMatch(id));
+  updatePills();
+  updateStandings();
+  updateStats();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PILLS & STATS
+// ════════════════════════════════════════════════════════════════
+function updatePills() {
+  const counts = { openA:0, openB:0, openC:0, womens:0 };
+  const totals = { openA:0, openB:0, openC:0, womens:0 };
+  Object.keys(MATCH_DEFS).forEach(id => {
+    const prefix = id.split('-')[0];
+    const bracket = BRACKET_MAP[prefix];
+    if (!bracket) return;
+    totals[bracket]++;
+    if (MATCHES[id]?.winner) counts[bracket]++;
+  });
+  ['openA','openB','openC','womens'].forEach(b => {
+    const el = document.getElementById('pill-' + b);
+    if (el) el.textContent = counts[b] + '/' + totals[b];
+  });
+}
+
+function updateStats() {
+  let completed = 0, total = 0;
+  Object.keys(MATCH_DEFS).forEach(id => {
+    total++;
+    if (MATCHES[id]?.winner) completed++;
+  });
+  document.getElementById('stat-completed').textContent = completed;
+  document.getElementById('stat-remaining').textContent = total - completed;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  WOMEN'S STANDINGS
+// ════════════════════════════════════════════════════════════════
+function updateStandings() {
+  const players = ['Gabriela Romanelli', 'Zining Chen', 'Massa Baali'];
+  const stats = {};
+  players.forEach(p => stats[p] = {w:0, l:0});
+  const rrMatches = Object.keys(MATCH_DEFS).filter(id => MATCH_DEFS[id].isRR);
+  rrMatches.forEach(id => {
+    const result = MATCHES[id];
+    if (!result?.winner) return;
+    const def = MATCH_DEFS[id];
+    const winner = result.winner === 'p1' ? def.p1 : def.p2;
+    const loser  = result.winner === 'p1' ? def.p2 : def.p1;
+    if (stats[winner]) stats[winner].w++;
+    if (stats[loser])  stats[loser].l++;
+  });
+  const sorted = players.slice().sort((a,b) => stats[b].w - stats[a].w);
+  const tbody = document.getElementById('standings-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  sorted.forEach((p, i) => {
+    const s = stats[p];
+    const total = s.w + s.l;
+    const pct = total > 0 ? (s.w / total * 100).toFixed(0) + '%' : '\u2014';
+    const isFinalist = i < 2 && s.w > 0;
+    const tr = document.createElement('tr');
+    if (isFinalist) tr.className = 'finalist';
+    tr.innerHTML = `<td class="standing-rank">${i+1}</td><td>${p}</td><td>${s.w}</td><td>${s.l}</td><td>${pct}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SCHEDULE VIEW
+// ════════════════════════════════════════════════════════════════
+function filterSchedule(f, btn) {
+  scheduleFilter = f;
+  document.querySelectorAll('.sch-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSchedule();
+}
+
+function renderSchedule() {
+  const container = document.getElementById('schedule-container');
+  const times = TIME_ORDER.filter(t => {
+    if (scheduleFilter === 'sat') return t.startsWith('Sat');
+    if (scheduleFilter === 'sun') return t.startsWith('Sun');
+    return true;
+  });
+
+  const byTime = {};
+  times.forEach(t => byTime[t] = []);
+
+  Object.keys(MATCH_DEFS).forEach(id => {
+    const t = getTime(id);
+    if (byTime[t]) byTime[t].push(id);
+  });
+
+  document.getElementById('conflict-warn').textContent = '';
+
+  const activeTimes = times.filter(t => byTime[t].length > 0);
+
+  let html = '<div class="schedule-list">';
+  activeTimes.forEach(t => {
+    html += `<div class="sl-time-group">`;
+    html += `<div class="sl-time-header">${t}</div>`;
+    html += `<div class="sl-matches">`;
+    byTime[t].forEach(id => {
+      const def = MATCH_DEFS[id];
+      const res = MATCHES[id];
+      const done = !!res?.winner;
+      const gClass = done ? ' completed' : '';
+      html += `<div class="sg-match${gClass}" onclick="goToMatch('${id}')" title="${def.p1} vs ${def.p2}">`;
+      html += `<div class="sg-grp">Grp ${def.group} \u00B7 ${id}</div>`;
+      html += `<div class="sg-p">${def.p1} vs ${def.p2}</div>`;
+      if (done) {
+        const wName = res.winner === 'p1' ? def.p1 : def.p2;
+        html += `<div class="sg-w">\u2713 ${wName}</div>`;
+      }
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function goToMatch(id) {
+  const def = MATCH_DEFS[id];
+  const prefix = id.split('-')[0];
+  const bracket = BRACKET_MAP[prefix];
+  if (bracket) switchBracket(bracket);
+  setTimeout(() => {
+    selectMatch(id);
+    document.getElementById('m-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 50);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PLAYERS VIEW
+// ════════════════════════════════════════════════════════════════
+function getAllPlayers() {
+  const pMap = {};
+  Object.entries(MATCH_DEFS).forEach(([id, def]) => {
+    [def.p1, def.p2].forEach(name => {
+      if (!name || name.startsWith('W(') || name.startsWith('L(') || name === 'Top 2 finisher') return;
+      if (!pMap[name]) pMap[name] = { name, group: def.group, matches: [] };
+      pMap[name].matches.push(id);
+    });
+  });
+  return Object.values(pMap).sort((a,b) => a.name.localeCompare(b.name));
+}
+
+function renderPlayers() {
+  const query = (document.getElementById('player-search')?.value || '').toLowerCase();
+  const all = getAllPlayers().filter(p => !query || p.name.toLowerCase().includes(query));
+  const grid = document.getElementById('player-grid');
+
+  grid.innerHTML = all.map(p => {
+    let w = 0, l = 0;
+    const matchLines = p.matches.map(id => {
+      const def = MATCH_DEFS[id];
+      const res = MATCHES[id];
+      const opp = def.p1 === p.name ? def.p2 : def.p1;
+      let cls = '', label = '';
+      if (res?.winner) {
+        const winnerName = res.winner === 'p1' ? def.p1 : def.p2;
+        if (winnerName === p.name) { w++; cls = ' won'; label = 'W'; }
+        else { l++; cls = ' lost'; label = 'L'; }
+      }
+      return `<div class="pm-line${cls}"><span>vs ${opp}</span><span>${label || '\u2014'}</span></div>`;
+    }).join('');
+
+    const gcls = 'pc-g' + p.group.toLowerCase();
+    return `<div class="player-card" onclick="goToPlayerMatch('${p.matches[0]}')">
+      <div class="player-card-name">${p.name}</div>
+      <div class="player-card-meta">
+        <span class="player-card-group ${gcls}">${GROUP_LABELS[p.group]}</span>
+        <span class="player-wl">${w}W ${l}L</span>
+        <span>${p.matches.length} match${p.matches.length!==1?'es':''}</span>
+      </div>
+      <div class="player-card-matches">${matchLines}</div>
+    </div>`;
+  }).join('');
+}
+
+function goToPlayerMatch(id) { goToMatch(id); }
+
+// ════════════════════════════════════════════════════════════════
+//  THEME
+// ════════════════════════════════════════════════════════════════
+function toggleTheme() {
+  document.body.classList.toggle('light');
+  localStorage.setItem('cct_theme', document.body.classList.contains('light') ? 'light' : 'dark');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SAVE / LOAD / EXPORT
+// ════════════════════════════════════════════════════════════════
+function saveResults() {
+  localStorage.setItem('cct_results', JSON.stringify(MATCHES));
+  dirty = false;
+  updateSaveStatus();
+  showToast('Results saved locally');
+}
+
+function clearResults() {
+  if (!confirm('Reset all results? This cannot be undone.')) return;
+  pushUndo();
+  Object.keys(MATCHES).forEach(k => delete MATCHES[k]);
+  renderAll();
+  deselectMatch();
+  dirty = false;
+  updateSaveStatus();
+  showToast('All results cleared');
+}
+
+function markDirty() {
+  dirty = true;
+  updateSaveStatus();
+}
+
+function updateSaveStatus() {
+  document.getElementById('save-status').textContent = dirty ? 'unsaved changes' : 'saved';
+  document.querySelector('.status-dot').style.background = dirty ? '#f06464' : 'var(--accent)';
+}
+
+function exportText() {
+  let text = 'CCT SPRING 2026 TOURNAMENT RESULTS\n' + '='.repeat(50) + '\n\n';
+  const groups = {};
+  Object.entries(MATCH_DEFS).forEach(([id, def]) => {
+    const g = def.group;
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(id);
+  });
+  Object.entries(groups).forEach(([g, ids]) => {
+    text += `--- Group ${g} ---\n`;
+    ids.forEach(id => {
+      const def = MATCH_DEFS[id];
+      const res = MATCHES[id];
+      const t = getTime(id);
+      let line = `  ${id}: ${def.p1} vs ${def.p2} | ${t}`;
+      if (res?.winner) {
+        const w = res.winner === 'p1' ? def.p1 : def.p2;
+        line += ` | Winner: ${w}`;
+        if (res.scoreP1 || res.scoreP2) line += ` (${res.scoreP1||''} / ${res.scoreP2||''})`;
+      }
+      if (res?.notes) line += ` | Note: ${res.notes}`;
+      text += line + '\n';
+    });
+    text += '\n';
+  });
+  navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard'));
+  closeModals();
+}
+
+function exportJSON() {
+  const data = { matches: MATCHES, defs: MATCH_DEFS, exported: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'cct_tournament_data.json'; a.click();
+  URL.revokeObjectURL(url);
+  closeModals();
+  showToast('JSON downloaded');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MODALS
+// ════════════════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')); }
+
+// ════════════════════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  ADMIN LOCK
+// ════════════════════════════════════════════════════════════════
+const ADMIN_PW = 'carnegieclubtennis2026';
+let isAdmin = false;
+
+function applyLockState() {
+  document.body.classList.toggle('locked', !isAdmin);
+  const btn = document.getElementById('admin-btn');
+  const icon = document.getElementById('lock-icon');
+  const label = document.getElementById('admin-label');
+  btn.classList.toggle('unlocked', isAdmin);
+  icon.innerHTML = isAdmin ? '&#128275;' : '&#128274;';
+  label.textContent = isAdmin ? 'Admin \u2713' : 'Admin';
+  updateNameEditability();
+}
+
+function toggleAdmin() {
+  if (isAdmin) {
+    isAdmin = false;
+    sessionStorage.removeItem('cct_admin');
+    applyLockState();
+    showToast('Locked — view-only mode');
+  } else {
+    openModal('admin-modal');
+    setTimeout(() => {
+      const inp = document.getElementById('pw-input');
+      inp.value = '';
+      inp.focus();
+      document.getElementById('pw-error').style.display = 'none';
+    }, 50);
+  }
+}
+
+function submitPassword() {
+  const inp = document.getElementById('pw-input');
+  if (inp.value === ADMIN_PW) {
+    isAdmin = true;
+    sessionStorage.setItem('cct_admin', '1');
+    closeModals();
+    applyLockState();
+    showToast('Unlocked — you can now edit');
+  } else {
+    document.getElementById('pw-error').style.display = 'block';
+    inp.value = '';
+    inp.focus();
+  }
+}
+
+function guardedAction(fn) {
+  if (!isAdmin) {
+    showToast('Unlock Admin to perform this action');
+    return;
+  }
+  fn();
+}
+
+function requireAdmin() {
+  if (!isAdmin) {
+    showToast('Unlock Admin to edit');
+    return false;
+  }
+  return true;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.isContentEditable) {
+    if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+    if (e.key === 'Escape') { e.target.blur(); }
+    return;
+  }
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+    if (e.key === 'Enter' && selectedMatch) { e.preventDefault(); applyMatch(); }
+    if (e.key === 'Escape') { e.target.blur(); deselectMatch(); }
+    return;
+  }
+  if (e.key === 'Escape') { closeModals(); deselectMatch(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); guardedAction(saveResults); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); undo(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'y') { e.preventDefault(); redo(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'd') { e.preventDefault(); toggleTheme(); }
+  if (e.key === '1') switchBracket('openA');
+  if (e.key === '2') switchBracket('openB');
+  if (e.key === '3') switchBracket('openC');
+  if (e.key === '4') switchBracket('womens');
+  if (e.key === '5') showView('schedule');
+  if (e.key === '6') showView('players');
+});
+
+// restore admin session
+if (sessionStorage.getItem('cct_admin') === '1') isAdmin = true;
+applyLockState();
+init();
+</script>
+</body>
+</html>
