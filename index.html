@@ -520,7 +520,6 @@
   .player-name[contenteditable="false"] { cursor: default; }
   body.locked .player-name { pointer-events: none; }
   .bye-match {
-    opacity: 0.5;
     border-style: dashed !important;
   }
   .bye-match .match-meta { font-style: italic; }
@@ -1257,7 +1256,7 @@
             <div class="match-wrapper" style="margin-top:8px">
               <div class="match-card bye-match" id="m-B-R1-2" onclick="selectMatch('B-R1-2')">
                 <div class="match-player-row" id="p-B-R1-2-1">Noah Yin</div>
-                <div class="match-player-row tbd" id="p-B-R1-2-2">BYE</div>
+                <div class="match-player-row" id="p-B-R1-2-2">BYE</div>
                 <div class="match-meta"><span>BYE</span></div>
               </div>
             </div>
@@ -2203,8 +2202,8 @@ function renderMatch(id) {
     p1el.className = 'match-player-row';
     p2el.className = 'match-player-row';
 
-    if (!result && (def.p1.startsWith('W(') || def.p1.startsWith('L(') || def.p1 === 'BYE')) p1el.classList.add('tbd');
-    if (!result && (def.p2.startsWith('W(') || def.p2.startsWith('L(') || def.p2 === 'BYE')) p2el.classList.add('tbd');
+    if (!result && (def.p1.startsWith('W(') || def.p1.startsWith('L('))) p1el.classList.add('tbd');
+    if (!result && (def.p2.startsWith('W(') || def.p2.startsWith('L('))) p2el.classList.add('tbd');
 
     if (result?.winner) {
       if (result.winner === 'p1') {
@@ -2217,8 +2216,8 @@ function renderMatch(id) {
     } else {
       p1el.style.opacity = '';
       p2el.style.opacity = '';
-      if (def.p1.startsWith('W(') || def.p1.startsWith('L(') || def.p1 === 'BYE') p1el.classList.add('tbd');
-      if (def.p2.startsWith('W(') || def.p2.startsWith('L(') || def.p2 === 'BYE') p2el.classList.add('tbd');
+      if (def.p1.startsWith('W(') || def.p1.startsWith('L(')) p1el.classList.add('tbd');
+      if (def.p2.startsWith('W(') || def.p2.startsWith('L(')) p2el.classList.add('tbd');
     }
 
     let s1 = p1el.querySelector('.score-display');
