@@ -522,7 +522,6 @@
   .bye-match {
     opacity: 0.5;
     border-style: dashed !important;
-    cursor: default;
   }
   .bye-match .match-meta { font-style: italic; }
 
@@ -1256,9 +1255,9 @@
               </div>
             </div>
             <div class="match-wrapper" style="margin-top:8px">
-              <div class="match-card bye-match">
-                <div class="match-player-row">Noah Yin</div>
-                <div class="match-player-row tbd">BYE</div>
+              <div class="match-card bye-match" id="m-B-R1-2" onclick="selectMatch('B-R1-2')">
+                <div class="match-player-row" id="p-B-R1-2-1">Noah Yin</div>
+                <div class="match-player-row tbd" id="p-B-R1-2-2">BYE</div>
                 <div class="match-meta"><span>BYE</span></div>
               </div>
             </div>
@@ -1806,6 +1805,7 @@ const MATCH_DEFS = {
   'A-CF-1': {p1:'W(CR1-1)', p2:'W(CSF)', time:'Sun 5PM', group:'A'},
 
   'B-R1-1': {p1:'Saumya Goyal', p2:'Demetrius DeMammos', time:'Sat 1PM', group:'B'},
+  'B-R1-2': {p1:'Noah Yin', p2:'BYE', time:'BYE', isBye:true, group:'B'},
   'B-R1-3': {p1:'Samuel Zeitler', p2:'Yuki Kamiya', time:'Sat 1PM', group:'B'},
   'B-R1-4': {p1:'Mario Cruz', p2:'Utkrisht Sharma', time:'Sat 1PM', group:'B'},
   'B-R1-5': {p1:'Dhruv Shah', p2:'Abhinav Bhargava', time:'Sat 2PM', group:'B'},
@@ -2203,8 +2203,8 @@ function renderMatch(id) {
     p1el.className = 'match-player-row';
     p2el.className = 'match-player-row';
 
-    if (!result && (def.p1.startsWith('W(') || def.p1.startsWith('L('))) p1el.classList.add('tbd');
-    if (!result && (def.p2.startsWith('W(') || def.p2.startsWith('L('))) p2el.classList.add('tbd');
+    if (!result && (def.p1.startsWith('W(') || def.p1.startsWith('L(') || def.p1 === 'BYE')) p1el.classList.add('tbd');
+    if (!result && (def.p2.startsWith('W(') || def.p2.startsWith('L(') || def.p2 === 'BYE')) p2el.classList.add('tbd');
 
     if (result?.winner) {
       if (result.winner === 'p1') {
@@ -2217,8 +2217,8 @@ function renderMatch(id) {
     } else {
       p1el.style.opacity = '';
       p2el.style.opacity = '';
-      if (def.p1.startsWith('W(') || def.p1.startsWith('L(')) p1el.classList.add('tbd');
-      if (def.p2.startsWith('W(') || def.p2.startsWith('L(')) p2el.classList.add('tbd');
+      if (def.p1.startsWith('W(') || def.p1.startsWith('L(') || def.p1 === 'BYE') p1el.classList.add('tbd');
+      if (def.p2.startsWith('W(') || def.p2.startsWith('L(') || def.p2 === 'BYE') p2el.classList.add('tbd');
     }
 
     let s1 = p1el.querySelector('.score-display');
@@ -2257,6 +2257,7 @@ function updatePills() {
   const counts = { openA:0, openB:0, openC:0, womens:0 };
   const totals = { openA:0, openB:0, openC:0, womens:0 };
   Object.keys(MATCH_DEFS).forEach(id => {
+    if (MATCH_DEFS[id].isBye) return;
     const prefix = id.split('-')[0];
     const bracket = BRACKET_MAP[prefix];
     if (!bracket) return;
@@ -2272,6 +2273,7 @@ function updatePills() {
 function updateStats() {
   let completed = 0, total = 0;
   Object.keys(MATCH_DEFS).forEach(id => {
+    if (MATCH_DEFS[id].isBye) return;
     total++;
     if (MATCHES[id]?.winner) completed++;
   });
@@ -2334,6 +2336,7 @@ function renderSchedule() {
   times.forEach(t => byTime[t] = []);
 
   Object.keys(MATCH_DEFS).forEach(id => {
+    if (MATCH_DEFS[id].isBye) return;
     const t = getTime(id);
     if (byTime[t]) byTime[t].push(id);
   });
@@ -2353,7 +2356,7 @@ function renderSchedule() {
       const done = !!res?.winner;
       const gClass = done ? ' completed' : '';
       html += `<div class="sg-match${gClass}" onclick="goToMatch('${id}')" title="${def.p1} vs ${def.p2}">`;
-      html += `<div class="sg-grp">Grp ${def.group} \u00B7 ${id}</div>`;
+      html += `<div class="sg-grp">${GROUP_LABELS[def.group] || 'Grp ' + def.group} \u00B7 ${id}</div>`;
       html += `<div class="sg-p">${def.p1} vs ${def.p2}</div>`;
       if (done) {
         const wName = res.winner === 'p1' ? def.p1 : def.p2;
@@ -2385,7 +2388,7 @@ function getAllPlayers() {
   const pMap = {};
   Object.entries(MATCH_DEFS).forEach(([id, def]) => {
     [def.p1, def.p2].forEach(name => {
-      if (!name || name.startsWith('W(') || name.startsWith('L(') || name === 'Top 2 finisher') return;
+      if (!name || name === 'BYE' || name.startsWith('W(') || name.startsWith('L(') || name === 'Top 2 finisher') return;
       if (!pMap[name]) pMap[name] = { name, group: def.group, matches: [] };
       pMap[name].matches.push(id);
     });
@@ -2476,7 +2479,7 @@ function exportText() {
     groups[g].push(id);
   });
   Object.entries(groups).forEach(([g, ids]) => {
-    text += `--- Group ${g} ---\n`;
+    text += `--- ${GROUP_LABELS[g] || 'Group ' + g} ---\n`;
     ids.forEach(id => {
       const def = MATCH_DEFS[id];
       const res = MATCHES[id];
